@@ -1,0 +1,17 @@
+#!/bin/bash
+
+DATE=$(date +'%m%d%Y')
+HOST=$(hostname)
+OUTPUT_FILE="summary-perf-spmm-1550-allbenchs2_${DATE}_${HOST}.txt"
+CPPFILE=spmm-esimd-allbenchs2.cpp
+EXECUTABLE=spmm-allbenchs2
+CSV_FILE_NOQUOTES="spmm-allbenchs2_${DATE}_${HOST}.csv"
+CSV_FILE=\"${CSV_FILE_NOQUOTES}\"
+
+rm -f ${OUTPUT_FILE} ${CSV_FILE_NOQUOTES}
+
+
+
+#compile the code
+icpx -std=c++20 -DOUTPUT_CSV_FILE=$CSV_FILE -fsycl -fsycl-targets=spir64_gen -Xsycl-target-backend "-device pvc" -o $EXECUTABLE $CPPFILE
+ZE_AFFINITY_MASK=0 ./$EXECUTABLE >> $OUTPUT_FILE

@@ -1,0 +1,26 @@
+#!/bin/bash
+OUTPUT_FILE=summary-perf-spmm-v1-1550.txt
+CPPFILE=spmm-esimd-v1.cpp
+EXECUTABLE=spmm-v1
+CSV_FILE="\"spmm-v1.csv\""
+
+
+rm -f $OUTPUT_FILE
+M_ARR=(1024 3072 4096 2048 6144 8192 4096 12288 16384 8192 24576 32768)
+K_ARR=(1024 1024 1024 2048 2048 2048 4096 4096 4096 8192 8192 8192)
+N_ARR=(32 128)
+SP_ARR=(0.3 0.2 0.1)
+
+
+for N in ${N_ARR[@]}; do
+    for idx in ${!M_ARR[@]}; do
+        M=${M_ARR[$idx]}
+        K=${K_ARR[$idx]}
+        for SP in ${SP_ARR[@]}; do
+            echo "$M $K $N $SP" >> $OUTPUT_FILE
+            icpx -std=c++20 -DOUTPUT_CSV_FILE=$CSV_FILE -DSP=$SP -DMSZ=$M -DNSZ=$N -DKSZ=$K -fsycl -o $EXECUTABLE $CPPFILE
+            CE_SCOPE_EVENTS=0 ZE_AFFINITY_MASK=0.0 EnableImplicitScaling=0 ONEAPI_DEVICE_SELECTOR=level_zero:gpu ./$EXECUTABLE >> $OUTPUT_FILE
+            echo "***********************" >> $OUTPUT_FILE
+        done
+    done
+done
