@@ -1,0 +1,42 @@
+#!/bin/bash
+
+
+DATE=$(date +'%m%d%Y')
+HOST=$(hostname)
+OUTPUT_FILE="summary-cusparse-perf-spmm-fromfile_${DATE}_${HOST}.txt"
+CPPFILE=spmm_fromfile.cu
+EXECUTABLE=spmm-fromfile
+CSV_FILE_NOQUOTES="spmm-fromfile_${DATE}_${HOST}.csv"
+CSV_FILE=\"${CSV_FILE_NOQUOTES}\"
+
+rm -f ${OUTPUT_FILE} ${CSV_FILE_NOQUOTES}
+
+declare -A batch_sizes
+
+fileName="../dlmc/rn50_batchsizes_noconv.txt"
+
+OIFS=$IFS
+IFS=','
+while read key value
+do
+    batch_sizes+=( ["$key"]="$value" )
+done < $fileName
+IFS=$OIFS
+
+nvcc -arch=sm_90 -DOUTPUT_CSV_FILE=$CSV_FILE -o $EXECUTABLE $CPPFILE -lcusparse
+
+
+for workload in $(find ../dlmc/rn50 -name "*.smtx")
+do
+        file_name=$(basename $workload)
+        echo $file_name
+        batch_size=${batch_sizes["${file_name%.*}"]}
+        if [ -z "$batch_size" ]; then
+            continue
+        fi
+
+        echo $batch_size
+
+        
+        ./$EXECUTABLE $workload $batch_size >> $OUTPUT_FILE
+done

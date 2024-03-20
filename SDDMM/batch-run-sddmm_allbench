@@ -1,0 +1,28 @@
+#!/bin/bash
+
+#Move dlmc data folder to the same directory as this 'SDDMM' directory such that
+# it has relative path ../dlmc
+
+DATE=$(date +'%m%d%Y')
+HOST=$(hostname)
+OUTPUT_FILE="summary-perf-sddmm-1550-allbench_v4_${DATE}_${HOST}.txt"
+CPPFILE=sddmm-esimd-allbench_v4.cpp
+EXECUTABLE=sddmm-allbench_v4
+CSV_FILE_NOQUOTES="sddmm-allbench_v4_${DATE}_${HOST}.csv"
+CSV_FILE=\"${CSV_FILE_NOQUOTES}\"
+
+rm -f ${OUTPUT_FILE} ${CSV_FILE_NOQUOTES}
+
+M_ARR=(1024 3072 4096 2048 6144 8192 4096 12288 16384 8192 24576 32768)
+K_ARR=(1024 1024 1024 2048 2048 2048 4096 4096 4096 8192 8192 8192)
+#N_ARR=(32 128)
+N_ARR=(32)
+SP_ARR=(0.3 0.2 0.1)
+
+
+for N in ${N_ARR[@]}; do
+    #icpx -DOUTPUT_CSV_FILE=$CSV_FILE -DNSZ_kernel=$N -fsycl -fsycl-targets=spir64_gen -Xsycl-target-backend "-device pvc" -o $EXECUTABLE $CPPFILE
+    icpx -DOUTPUT_CSV_FILE=$CSV_FILE -fsycl -fsycl-targets=spir64_gen -Xsycl-target-backend "-device pvc" -o $EXECUTABLE $CPPFILE
+    CE_SCOPE_EVENTS=0 ZE_AFFINITY_MASK=0 EnableImplicitScaling=0 ONEAPI_DEVICE_SELECTOR=level_zero:gpu ./$EXECUTABLE $workload $batch_size >> $OUTPUT_FILE
+    echo "***********************" >> $OUTPUT_FILE
+done
